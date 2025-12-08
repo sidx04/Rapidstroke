@@ -118,7 +118,7 @@ const AllPatientRecords: React.FC = () => {
     // FIX: Using the exact string literal expected by TypeScript (usually the file name without extension)
     // If the file is app/ImagingScreen.tsx, the path is '/ImagingScreen'.
     router.push({
-      pathname: "./(auth)/ImagingScreen", // <-- Added leading slash to denote root path
+      pathname: "/ImagingScreen", // <-- Added leading slash to denote root path
       params: { patientId: patient._id, patientName: patient.name },
     });
   };
