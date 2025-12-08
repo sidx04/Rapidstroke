@@ -156,9 +156,9 @@ const RegisterScreen: React.FC<{}> = () => {
 
         // Use router.replace to prevent going back to the registration screen
         if (userData.role === "clinician" || userData.role === "radiologist") {
-          router.replace("./(auth)/RadioWelcome");
+          router.replace("/RadioWelcome");
         } else {
-          router.replace("./(auth)/MainPatientScreen");
+          router.replace("/MainPatientScreen");
         }
       } else {
         Alert.alert(
