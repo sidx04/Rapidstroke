@@ -1,0 +1,571 @@
+{
+    "info": {
+        "_postman_id": "rapidstroke-api-collection",
+        "name": "RapidStroke API",
+        "description": "Complete API collection for RapidStroke medical application with authentication and patient management endpoints.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Register User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.environment.set('auth_token', responseJson.data.token);",
+                                    "    pm.environment.set('user_id', responseJson.data.user.id);",
+                                    "    pm.test('Registration successful', function () {",
+                                    "        pm.expect(responseJson.success).to.be.true;",
+                                    "        pm.expect(responseJson.data.token).to.exist;",
+                                    "    });",
+                                    "} else {",
+                                    "    pm.test('Registration failed', function () {",
+                                    "        pm.expect(pm.response.code).to.not.equal(201);",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Dr. Sarah Johnson\",\n  \"email\": \"sarah.johnson@hospital.com\",\n  \"password\": \"securepassword123\",\n  \"dob\": \"1985-03-15\",\n  \"role\": \"clinician\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Register a new user with role (patient, clinician, radiologist)"
+                    }
+                },
+                {
+                    "name": "Login User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.environment.set('auth_token', responseJson.data.token);",
+                                    "    pm.environment.set('user_id', responseJson.data.user.id);",
+                                    "    pm.test('Login successful', function () {",
+                                    "        pm.expect(responseJson.success).to.be.true;",
+                                    "        pm.expect(responseJson.data.token).to.exist;",
+                                    "    });",
+                                    "} else {",
+                                    "    pm.test('Login failed', function () {",
+                                    "        pm.expect(pm.response.code).to.not.equal(200);",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"sarah.johnson@hospital.com\",\n  \"password\": \"securepassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login with email and password to get JWT token"
+                    }
+                },
+                {
+                    "name": "Get User Profile",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Profile retrieved successfully', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "    pm.expect(responseJson.data.user).to.exist;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get current user's profile (requires authentication)"
+                    }
+                }
+            ],
+            "description": "Authentication endpoints for user registration, login, and profile management"
+        },
+        {
+            "name": "Patient Management",
+            "item": [
+                {
+                    "name": "Create Patient",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.environment.set('patient_id', responseJson.data.patient._id);",
+                                    "    pm.test('Patient created successfully', function () {",
+                                    "        pm.expect(responseJson.success).to.be.true;",
+                                    "        pm.expect(responseJson.data.patient).to.exist;",
+                                    "    });",
+                                    "} else {",
+                                    "    pm.test('Patient creation failed', function () {",
+                                    "        pm.expect(pm.response.code).to.not.equal(201);",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"John Smith\",\n  \"age\": 45,\n  \"gender\": \"male\",\n  \"symptoms\": [\"headache\", \"dizziness\", \"nausea\"],\n  \"medicalHistory\": \"Hypertension, diabetes\",\n  \"currentMedications\": \"Lisinopril, Metformin\",\n  \"allergies\": \"Penicillin\",\n  \"emergencyContact\": {\n    \"name\": \"Jane Smith\",\n    \"relationship\": \"spouse\",\n    \"phone\": \"+1234567890\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/patients",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients"
+                            ]
+                        },
+                        "description": "Create a new patient record"
+                    }
+                },
+                {
+                    "name": "Get All Patients",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Patients retrieved successfully', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "    pm.expect(responseJson.data.patients).to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/patients?page=1&limit=10&search=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "Get all patients with pagination and search (clinician/radiologist only)"
+                    }
+                },
+                {
+                    "name": "Get Patient by ID",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Patient retrieved successfully', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "    pm.expect(responseJson.data.patient).to.exist;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients",
+                                "{{patient_id}}"
+                            ]
+                        },
+                        "description": "Get a specific patient by ID"
+                    }
+                },
+                {
+                    "name": "Update Patient",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Patient updated successfully', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "    pm.expect(responseJson.data.patient).to.exist;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"symptoms\": [\"headache\", \"dizziness\", \"nausea\", \"blurred vision\"],\n  \"medicalHistory\": \"Hypertension, diabetes, recent stroke risk assessment\",\n  \"currentMedications\": \"Lisinopril, Metformin, Aspirin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients",
+                                "{{patient_id}}"
+                            ]
+                        },
+                        "description": "Update patient information (clinician/radiologist only)"
+                    }
+                },
+                {
+                    "name": "Get My Patients",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('My patients retrieved successfully', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "    pm.expect(responseJson.data.patients).to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/patients/my-patients",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients",
+                                "my-patients"
+                            ]
+                        },
+                        "description": "Get patients created by the current user"
+                    }
+                },
+                {
+                    "name": "Delete Patient",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Patient deleted successfully', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients",
+                                "{{patient_id}}"
+                            ]
+                        },
+                        "description": "Delete a patient record (clinician/radiologist only)"
+                    }
+                }
+            ],
+            "description": "Patient management endpoints for CRUD operations"
+        },
+        {
+            "name": "Health Check",
+            "item": [
+                {
+                    "name": "API Health Check",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('API is healthy', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.true;",
+                                    "    pm.expect(responseJson.message).to.include('running');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Check if the API is running and healthy"
+                    }
+                }
+            ],
+            "description": "Health check endpoint to verify API status"
+        },
+        {
+            "name": "Error Testing",
+            "item": [
+                {
+                    "name": "Test Invalid Route",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('404 for invalid route', function () {",
+                                    "    pm.response.to.have.status(404);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.false;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/invalid-endpoint",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "invalid-endpoint"
+                            ]
+                        },
+                        "description": "Test that invalid routes return 404"
+                    }
+                },
+                {
+                    "name": "Test Unauthorized Access",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('401 for unauthorized access', function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "    const responseJson = pm.response.json();",
+                                    "    pm.expect(responseJson.success).to.be.false;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/patients",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "patients"
+                            ]
+                        },
+                        "description": "Test accessing protected route without token"
+                    }
+                }
+            ],
+            "description": "Error testing and edge cases"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5000/api",
+            "type": "string"
+        }
+    ]
+}
