@@ -30,30 +30,151 @@ const userSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ['patient', 'clinician', 'radiologist'],
-    default: 'patient',
+    enum: ['emo', 'clinician', 'radiologist'],
+    default: 'emo',
     required: true
+  },
+  emoId: {
+    type: String,
+    sparse: true,
+    unique: true,
+    trim: true
+  },
+  clinicianId: {
+    type: String,
+    sparse: true,
+    unique: true,
+    trim: true
+  },
+  radiologistId: {
+    type: String,
+    sparse: true,
+    unique: true,
+    trim: true
+  },
+  licenseNumber: {
+    type: String,
+    trim: true,
+    sparse: true // Allows multiple null values but unique non-null values
+  },
+  department: {
+    type: String,
+    trim: true
+  },
+  hospitalId: {
+    type: String,
+    trim: true
+  },
+  phone: {
+    type: String,
+    trim: true,
+    match: [/^[\+]?[\d\s\-\(\)]+$/, 'Please provide a valid phone number']
+  },
+  specialization: {
+    type: String,
+    trim: true
+  },
+  expoPushToken: {
+    type: String,
+    sparse: true // Allows multiple null values but unique non-null values
+  },
+  notificationPreferences: {
+    push: {
+      type: Boolean,
+      default: true
+    },
+    sms: {
+      type: Boolean,
+      default: false
+    },
+    email: {
+      type: Boolean,
+      default: true
+    },
+    urgentOnly: {
+      type: Boolean,
+      default: false
+    }
+  },
+  isAvailable: {
+    type: Boolean,
+    default: true
+  },
+  currentShift: {
+    startTime: Date,
+    endTime: Date
   }
 }, {
   timestamps: true
 });
 
-// Hash password before saving
+// Generate role-specific ID before saving
 userSchema.pre('save', async function () {
-  // If password is not modified, return early (resolves the promise)
-  if (!this.isModified('password')) {
-    return;
+  // Generate role-specific ID if it's a new user or role changed
+  if (this.isNew || this.isModified('role')) {
+    await generateRoleSpecificId(this);
   }
 
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    // No need to call next(), the function finishing signals success
-  } catch (error: any) {
-    // Throwing an error automatically passes it to Mongoose middleware
-    throw error;
+  // Hash password if modified
+  if (this.isModified('password')) {
+    try {
+      const salt = await bcrypt.genSalt(12);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error: any) {
+      throw error;
+    }
   }
 });
+
+// Helper function to generate role-specific IDs
+async function generateRoleSpecificId(user: any) {
+  const User = mongoose.model('User');
+
+  let prefix: string;
+  let fieldName: string;
+
+  switch (user.role) {
+    case 'emo':
+      prefix = 'EMO';
+      fieldName = 'emoId';
+      break;
+    case 'clinician':
+      prefix = 'CLIN';
+      fieldName = 'clinicianId';
+      break;
+    case 'radiologist':
+      prefix = 'RAD';
+      fieldName = 'radiologistId';
+      break;
+    default:
+      throw new Error(`Invalid role: ${user.role}`);
+  }
+
+  // Clear other role IDs
+  if (user.role !== 'emo') user.emoId = undefined;
+  if (user.role !== 'clinician') user.clinicianId = undefined;
+  if (user.role !== 'radiologist') user.radiologistId = undefined;
+
+  // Generate unique ID
+  let isUnique = false;
+  let counter = 1;
+  let generatedId: string;
+
+  while (!isUnique) {
+    generatedId = `${prefix}-${String(counter).padStart(3, '0')}`;
+
+    const query: any = {};
+    query[fieldName] = generatedId;
+
+    const existingUser = await User.findOne(query);
+    if (!existingUser) {
+      isUnique = true;
+      (user as any)[fieldName] = generatedId;
+    } else {
+      counter++;
+    }
+  }
+}
 
 // Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {

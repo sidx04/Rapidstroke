@@ -13,6 +13,7 @@ import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 
 // Define the API base URL (Replace with your computer's IP address)
@@ -29,11 +30,12 @@ const authService = {
       if (response.status === 200 || response.status === 201) {
         const userData = response.data?.data?.user || null;
 
-        if (userData?.role === "clinician" || userData?.role === "radiologist") {
-          console.log("User role identified as clinician/radiologist.");
-
-        } else if (userData?.role === "patient") {
-          console.log("User role identified as patient.");
+        if (userData?.role === "emo") {
+          console.log("User role identified as EMO.");
+        } else if (userData?.role === "clinician") {
+          console.log("User role identified as clinician.");
+        } else if (userData?.role === "radiologist") {
+          console.log("User role identified as radiologist.");
         } else {
           console.warn("Unknown user role:", userData?.role);
         }
@@ -106,22 +108,30 @@ const LoginScreen: React.FC<{}> = () => {
 
       if (response.success) {
         const userData = response.data?.data?.user;
+        const token = response.data?.data?.token;
         console.log("User data for routing:", userData);
+
+        // Store token and user data
+        if (token) {
+          await AsyncStorage.setItem('userToken', token);
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        }
+
         Alert.alert("Success", "Login successful!");
 
         // Role-based routing
-        if (
-          userData?.role === "clinician" ||
-          userData?.role === "radiologist"
-        ) {
-          console.log("Routing to RadioWelcome for:", userData.role);
-          router.replace("/RadioWelcome");
-        } else if (userData?.role === "patient") {
-          console.log("Routing to MainPatientScreen for patient");
-          router.replace("/MainPatientScreen");
+        if (userData?.role === "emo") {
+          console.log("Routing to EMO Dashboard");
+          router.replace("./EMODashboard");
+        } else if (userData?.role === "clinician") {
+          console.log("Routing to Clinician Dashboard");
+          router.replace("./ClinicianDashboard");
+        } else if (userData?.role === "radiologist") {
+          console.log("Routing to Radiologist Dashboard");
+          router.replace("./RadiologistDashboard");
         } else {
-          console.warn("Unknown role, defaulting to patient screen:", userData?.role);
-          router.replace("/MainPatientScreen");
+          console.warn("Unknown role, defaulting to EMO dashboard:", userData?.role);
+          router.replace("./EMODashboard");
         }
       } else {
         Alert.alert(

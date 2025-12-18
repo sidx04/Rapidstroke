@@ -6,6 +6,7 @@ import * as types from '../types.ts';
 type RegisterRequest = types.RegisterRequest;
 type LoginRequest = types.LoginRequest;
 type ApiResponse = types.ApiResponse;
+type AuthenticatedRequest = types.AuthenticatedRequest;
 
 type Request = express.Request;
 type Response = express.Response;
@@ -40,11 +41,11 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Validate role
-    const validRoles = ['patient', 'clinician', 'radiologist'];
+    const validRoles = ['emo', 'clinician', 'radiologist'];
     if (role && !validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid role. Must be patient, clinician, or radiologist'
+        message: 'Invalid role. Must be emo, clinician, or radiologist'
       });
     }
 
@@ -165,10 +166,17 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const getProfile = async (req: Request, res: Response) => {
+export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // User is attached to request by auth middleware
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
@@ -198,6 +206,51 @@ export const getProfile = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching profile'
+    });
+  }
+};
+
+export const updatePushToken = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    const { expoPushToken } = req.body;
+
+    if (!expoPushToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expo push token is required'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.expoPushToken = expoPushToken;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Push token updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update push token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating push token'
     });
   }
 };

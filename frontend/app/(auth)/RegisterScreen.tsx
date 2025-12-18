@@ -19,7 +19,7 @@ import axios from "axios";
 import { useRouter } from "expo-router"; // <-- CHANGED BACK TO useRouter
 
 // Define the possible roles for clearer typing
-type UserRole = "patient" | "clinician" | "radiologist";
+type UserRole = "emo" | "clinician" | "radiologist";
 
 // --- PLACEHOLDER AUTH SERVICE (Adapting from previous axios structure) ---
 // NOTE: In a real app, this would live in a separate file (e.g., ../services/authService.ts)
@@ -36,8 +36,12 @@ const authService = {
         const userData = response.data?.data || null;
         console.log("Registration response data:", response.data);
 
-        if (userData.role == "clinician" || userData.role == "radiologist") {
-          console.log("User role identified as clinician/radiologist.");
+        if (userData.role === "emo") {
+          console.log("User role identified as EMO.");
+        } else if (userData.role === "clinician") {
+          console.log("User role identified as clinician.");
+        } else if (userData.role === "radiologist") {
+          console.log("User role identified as radiologist.");
         }
 
         return {
@@ -85,7 +89,7 @@ const RegisterScreen: React.FC<{}> = () => {
     email: "",
     password: "",
     dob: "", // Formatted date string (YYYY-MM-DD)
-    role: "patient" as UserRole, // Default role
+    role: "emo" as UserRole, // Default role
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -155,10 +159,14 @@ const RegisterScreen: React.FC<{}> = () => {
         Alert.alert("Success", "Account created successfully!");
 
         // Use router.replace to prevent going back to the registration screen
-        if (userData.role === "clinician" || userData.role === "radiologist") {
-          router.replace("/RadioWelcome");
+        if (userData.role === "emo") {
+          router.replace("./EMODashboard");
+        } else if (userData.role === "clinician") {
+          router.replace("./ClinicianDashboard");
+        } else if (userData.role === "radiologist") {
+          router.replace("./RadiologistDashboard");
         } else {
-          router.replace("/MainPatientScreen");
+          router.replace("./EMODashboard"); // Default fallback
         }
       } else {
         Alert.alert(
@@ -305,7 +313,7 @@ const RegisterScreen: React.FC<{}> = () => {
 
           {/* Role Selection */}
           <View style={styles.roleContainer}>
-            {(["patient", "clinician", "radiologist"] as UserRole[]).map(
+            {(["emo", "clinician", "radiologist"] as UserRole[]).map(
               (role) => (
                 <TouchableOpacity
                   key={role}

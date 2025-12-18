@@ -5,9 +5,9 @@ import * as types from '../types.ts';
 
 type Response = express.Response;
 type NextFunction = express.NextFunction;
-type AuthRequest = types.AuthRequest;
+type AuthenticatedRequest = types.AuthenticatedRequest;
 
-const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
@@ -37,11 +37,17 @@ const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunctio
     }
 
     // Add user to request object
-    req.user = {
+    const userObj: types.AuthenticatedRequest['user'] = {
       id: user._id.toString(),
       email: user.email,
       role: user.role
     };
+
+    if (user.emoId) userObj.emoId = user.emoId;
+    if (user.clinicianId) userObj.clinicianId = user.clinicianId;
+    if (user.radiologistId) userObj.radiologistId = user.radiologistId;
+
+    req.user = userObj;
 
     next();
   } catch (error) {
@@ -55,7 +61,7 @@ const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunctio
 
 // Middleware to check for specific roles
 const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -75,3 +81,7 @@ const authorize = (...roles: string[]) => {
 };
 
 export { authMiddleware, authorize };
+
+// For backward compatibility
+export const authenticateToken = authMiddleware;
+export const authorizeRoles = authorize;

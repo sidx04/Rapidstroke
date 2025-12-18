@@ -3,12 +3,55 @@ import { Document as MongoDocument } from 'mongoose';
 
 type Request = express.Request;
 
+// Extended Request interface with user property
+export interface AuthenticatedRequest extends express.Request {
+  user?: {
+    id: string;
+    email: string;
+    role: 'emo' | 'clinician' | 'radiologist';
+    emoId?: string;
+    clinicianId?: string;
+    radiologistId?: string;
+  };
+}
+
 export interface IUser extends MongoDocument {
   name: string;
   email: string;
   password: string;
   dob: Date;
-  role: 'patient' | 'clinician' | 'radiologist';
+  role: 'emo' | 'clinician' | 'radiologist'; // Removed 'patient', added 'emo'
+
+  // Role-specific unique identifiers
+  emoId?: string;       // e.g., 'EMO-001', 'EMO-002'
+  clinicianId?: string; // e.g., 'CLIN-123', 'CLIN-124'
+  radiologistId?: string; // e.g., 'RAD-456', 'RAD-457'
+
+  // Additional fields for medical professionals
+  licenseNumber?: string;
+  department?: string;
+  hospitalId?: string;
+  phone?: string;
+  specialization?: string; // For clinicians and radiologists
+
+  // Expo push token for notifications
+  expoPushToken?: string;
+
+  // Notification preferences
+  notificationPreferences: {
+    push: boolean;
+    sms: boolean;
+    email: boolean;
+    urgentOnly: boolean;
+  };
+
+  // Availability status
+  isAvailable: boolean;
+  currentShift?: {
+    startTime: Date;
+    endTime: Date;
+  };
+
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -32,14 +75,6 @@ export interface IPatient extends MongoDocument {
   updatedAt: Date;
 }
 
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
-
 export interface LoginRequest {
   email: string;
   password: string;
@@ -50,7 +85,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   dob: string;
-  role: 'patient' | 'clinician' | 'radiologist';
+  role: 'emo' | 'clinician' | 'radiologist';
 }
 
 export interface ApiResponse<T = any> {

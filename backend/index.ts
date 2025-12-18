@@ -6,6 +6,7 @@ import connectDB from './config/database.ts';
 // Import routes
 import authRoutes from './routes/auth.ts';
 import patientRoutes from './routes/patients.ts';
+import alertRoutes from './routes/alerts.ts';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +38,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/alerts', alertRoutes);
 
 // Handle undefined routes
 app.use((req, res) => {
