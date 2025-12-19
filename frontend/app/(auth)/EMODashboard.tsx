@@ -438,7 +438,9 @@ const EMODashboard: React.FC = () => {
                         </View>
                     </Card.Content>
                 </Card>
-            )}            {showNotificationLogs && (
+            )}
+
+            {showNotificationLogs && (
                 <Card style={styles.notificationLogsCard}>
                     <Card.Content>
                         <Text style={styles.logsTitle}>📊 Notification Database Logs</Text>

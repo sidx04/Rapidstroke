@@ -149,9 +149,7 @@ const ClinicianDashboard: React.FC = () => {
         setRadiologistId('');
         setModalClinicianNotes('');
         await fetchAvailableRadiologists();
-        console.log('Setting showRadiologistPrompt to true');
         setShowRadiologistPrompt(true);
-        console.log('showRadiologistPrompt should now be true');
     };
 
     const handleSendToRadiologist = async () => {
@@ -257,11 +255,9 @@ const ClinicianDashboard: React.FC = () => {
         fetchAlerts();
     }, []);
 
-    console.log('ClinicianDashboard render - showRadiologistPrompt:', showRadiologistPrompt);
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* GLOBAL MODAL — ALWAYS AVAILABLE IN BOTH VIEWS */}
             <Modal
                 visible={showRadiologistPrompt}
                 transparent={true}
