@@ -2,7 +2,7 @@ import * as express from 'express';
 import Patient from '../models/Patient.ts';
 import * as types from '../types.ts';
 
-type AuthRequest = types.AuthRequest;
+type AuthRequest = types.AuthenticatedRequest;
 type Request = express.Request;
 type Response = express.Response;
 type ApiResponse = types.ApiResponse;

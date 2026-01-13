@@ -2,11 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/database.ts';
+import { startBackgroundTasks } from './services/backgroundTasks.ts';
 
 // Import routes
 import authRoutes from './routes/auth.ts';
 import patientRoutes from './routes/patients.ts';
 import alertRoutes from './routes/alerts.ts';
+import notificationRoutes from './routes/notifications.ts';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +41,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/alerts', alertRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Handle undefined routes
 app.use((req, res) => {
@@ -66,4 +69,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🌐 For Expo: http://10.50.133.1:${PORT}/health`);
   console.log(`🔐 Auth endpoints: http://10.50.133.1:${PORT}/api/auth`);
   console.log(`👥 Patient endpoints: http://10.50.133.1:${PORT}/api/patients`);
+
+  // Start background notification tasks
+  startBackgroundTasks();
 });

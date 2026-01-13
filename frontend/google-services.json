@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "730301123930",
+    "project_id": "rapidstroke-notifs",
+    "storage_bucket": "rapidstroke-notifs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:730301123930:android:48bf3cc655106de418b763",
+        "android_client_info": {
+          "package_name": "com.papai22.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2-TlrpKGZqYAM0L78OjZtanKtLJK2RcE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -18,7 +18,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.papai22.frontend"
+      "package": "com.papai22.frontend",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -26,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -44,9 +46,11 @@
       "reactCompiler": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "a1b2c3d4-5678-9abc-def0-123456789abc"
+        "projectId": "c2f29831-f572-46c2-94c8-36ab28c7b9f9"
       }
-    }
+    },
+    "owner": "papai22"
   }
 }
