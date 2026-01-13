@@ -21,10 +21,12 @@ export interface INotification extends Document {
         push: {
             sent: boolean;
             sentAt?: Date;
+            ticketId?: string; // Expo ticket ID for receipt tracking
             delivered?: boolean;
             deliveredAt?: Date;
             clicked?: boolean;
             clickedAt?: Date;
+            error?: string; // Store any push notification errors
         };
         sms: {
             sent: boolean;
@@ -47,6 +49,8 @@ export interface INotification extends Document {
     readAt?: Date;
     retryCount: number;
     maxRetries: number;
+    lastRetryAt?: Date;
+    nextRetryAt?: Date;
     scheduledFor?: Date; // For delayed notifications
     expiresAt?: Date;
 
@@ -112,6 +116,10 @@ const notificationSchema = new Schema<INotification>({
                 default: false
             },
             sentAt: Date,
+            ticketId: {
+                type: String,
+                sparse: true
+            },
             delivered: {
                 type: Boolean,
                 default: false
@@ -121,7 +129,8 @@ const notificationSchema = new Schema<INotification>({
                 type: Boolean,
                 default: false
             },
-            clickedAt: Date
+            clickedAt: Date,
+            error: String
         },
         sms: {
             sent: {
@@ -173,6 +182,11 @@ const notificationSchema = new Schema<INotification>({
         default: 3,
         min: 0,
         max: 10
+    },
+    lastRetryAt: Date,
+    nextRetryAt: {
+        type: Date,
+        index: true
     },
     scheduledFor: {
         type: Date,

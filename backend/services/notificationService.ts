@@ -6,6 +6,11 @@ import type { ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
 // Create a new Expo SDK client
 const expo = new Expo();
 
+// Constants for retry logic
+const INITIAL_RETRY_DELAY_MS = 1000; // 1 second
+const MAX_RETRY_DELAY_MS = 60000; // 1 minute
+const BACKOFF_MULTIPLIER = 2;
+
 interface NotificationData {
     userId: string;
     alertId: string;
@@ -23,6 +28,20 @@ interface NotificationData {
     scheduledFor?: Date;
 }
 
+/**
+ * Calculate next retry time using exponential backoff
+ */
+function calculateNextRetryTime(retryCount: number): Date {
+    const delayMs = Math.min(
+        INITIAL_RETRY_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, retryCount),
+        MAX_RETRY_DELAY_MS
+    );
+    return new Date(Date.now() + delayMs);
+}
+
+/**
+ * Main notification sending function
+ */
 export const sendNotification = async (notificationData: NotificationData) => {
     try {
         const user = await User.findById(notificationData.userId);
@@ -82,6 +101,9 @@ export const sendNotification = async (notificationData: NotificationData) => {
     }
 };
 
+/**
+ * Send push notification via Expo
+ */
 const sendPushNotification = async (user: any, notification: any) => {
     try {
         // Check if user has a valid Expo push token
@@ -111,26 +133,42 @@ const sendPushNotification = async (user: any, notification: any) => {
         // Send the push notification
         const tickets = await expo.sendPushNotificationsAsync([message]);
 
-        // Update notification record
+        // Update notification record with ticket info
         notification.channels.push.sent = true;
         notification.channels.push.sentAt = new Date();
 
-        // Check if the ticket indicates delivery
-        if (tickets[0] && tickets[0].status === 'ok') {
-            notification.channels.push.delivered = true;
-            notification.channels.push.deliveredAt = new Date();
+        // Store the ticket ID for later receipt checking
+        if (tickets[0] && tickets[0].status === 'ok' && 'id' in tickets[0]) {
+            notification.channels.push.ticketId = tickets[0].id;
+            console.log(`Push notification sent with ticket ID: ${tickets[0].id}`);
+        } else if (tickets[0] && tickets[0].status === 'error') {
+            notification.channels.push.error = (tickets[0] as any).message || 'Unknown error';
+            // Set up retry
+            notification.nextRetryAt = calculateNextRetryTime(notification.retryCount);
+            console.error(`Push notification error: ${notification.channels.push.error}`);
         }
 
         await notification.save();
-        console.log(`Expo push notification sent successfully to ${user.name}`);
+        console.log(`Expo push notification sent to ${user.name}`);
 
     } catch (error) {
         console.error('Expo push notification error:', error);
+        notification.channels.push.error = (error as Error).message;
         notification.retryCount += 1;
+        notification.lastRetryAt = new Date();
+
+        // Calculate next retry time
+        if (notification.retryCount < notification.maxRetries) {
+            notification.nextRetryAt = calculateNextRetryTime(notification.retryCount);
+        }
+
         await notification.save();
     }
 };
 
+/**
+ * Send SMS notification
+ */
 const sendSMSNotification = async (user: any, notification: any) => {
     try {
         // Placeholder for SMS service integration (Twilio, AWS SNS, etc.)
@@ -150,6 +188,9 @@ const sendSMSNotification = async (user: any, notification: any) => {
     }
 };
 
+/**
+ * Send email notification
+ */
 const sendEmailNotification = async (user: any, notification: any) => {
     try {
         // Placeholder for email service integration (SendGrid, AWS SES, etc.)
@@ -169,7 +210,9 @@ const sendEmailNotification = async (user: any, notification: any) => {
     }
 };
 
-// Get user notifications
+/**
+ * Get user notifications
+ */
 export const getUserNotifications = async (userId: string, limit: number = 50) => {
     try {
         const notifications = await Notification.find({ userId })
@@ -183,7 +226,9 @@ export const getUserNotifications = async (userId: string, limit: number = 50) =
     }
 };
 
-// Mark notification as read
+/**
+ * Mark notification as read
+ */
 export const markNotificationAsRead = async (notificationId: string, userId: string) => {
     try {
         const notification = await Notification.findOne({
@@ -206,18 +251,21 @@ export const markNotificationAsRead = async (notificationId: string, userId: str
     }
 };
 
-// Retry failed notifications
+/**
+ * Retry failed notifications with exponential backoff
+ */
 export const retryFailedNotifications = async () => {
     try {
+        const now = new Date();
         const failedNotifications = await Notification.find({
             retryCount: { $lt: 3 },
+            nextRetryAt: { $lte: now },
             $or: [
                 { 'channels.push.sent': false },
                 { 'channels.sms.sent': false },
                 { 'channels.email.sent': false }
             ],
-            scheduledFor: { $lte: new Date() },
-            expiresAt: { $gt: new Date() }
+            expiresAt: { $gt: now }
         });
 
         for (const notification of failedNotifications) {
@@ -227,10 +275,10 @@ export const retryFailedNotifications = async () => {
                 await sendNotification({
                     userId: notification.userId,
                     alertId: notification.alertId,
-                    type: notification.type,
+                    type: notification.type as any,
                     title: notification.title,
                     message: notification.message,
-                    priority: notification.priority,
+                    priority: notification.priority as any,
                     data: notification.data
                 });
             }
@@ -242,36 +290,129 @@ export const retryFailedNotifications = async () => {
     }
 };
 
-// Handle Expo push notification receipts
-export const handlePushNotificationReceipts = async () => {
+/**
+ * Check push notification receipts and update delivery status
+ * Call this periodically (recommended: every 15 minutes) to check receipt status
+ */
+export const checkPushNotificationReceipts = async () => {
     try {
-        // Get all tickets that need receipt checking
+        // Get all notifications sent in the last 24 hours that haven't been confirmed delivered
         const notifications = await Notification.find({
             'channels.push.sent': true,
-            'channels.push.delivered': false,
-            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
+            'channels.push.delivered': { $ne: true },
+            'channels.push.ticketId': { $exists: true },
+            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
         });
 
-        if (notifications.length === 0) return;
+        if (notifications.length === 0) {
+            console.log('No pending push receipts to check');
+            return;
+        }
 
-        // Group notifications by their push tickets (you'd need to store ticket IDs)
-        // For now, we'll simulate receipt checking
-        for (const notification of notifications) {
-            // In a real implementation, you'd use the stored ticket ID
-            // const receiptIds = [storedTicketId];
-            // const receipts = await expo.getPushNotificationReceiptsAsync(receiptIds);
+        // Collect all ticket IDs
+        const ticketIds = notifications
+            .map(n => n.channels.push.ticketId)
+            .filter((id): id is string => !!id);
 
-            // For simulation, assume delivery after 5 minutes
-            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-            if (notification.channels.push.sentAt && notification.channels.push.sentAt < fiveMinutesAgo) {
-                notification.channels.push.delivered = true;
-                notification.channels.push.deliveredAt = new Date();
-                await notification.save();
+        if (ticketIds.length === 0) {
+            return;
+        }
+
+        // Check receipts in batches (Expo API limit is 1000 per request)
+        const batchSize = 1000;
+        for (let i = 0; i < ticketIds.length; i += batchSize) {
+            const batch = ticketIds.slice(i, i + batchSize);
+
+            try {
+                const receipts = await expo.getPushNotificationReceiptsAsync(batch);
+
+                // Update notifications based on receipts
+                for (const notification of notifications) {
+                    const ticketId = notification.channels.push.ticketId;
+                    if (!ticketId || !receipts[ticketId]) continue;
+
+                    const receipt = receipts[ticketId];
+
+                    if (receipt.status === 'ok') {
+                        notification.channels.push.delivered = true;
+                        notification.channels.push.deliveredAt = new Date();
+                        console.log(`Notification ${notification.notificationId} confirmed delivered`);
+                    } else if (receipt.status === 'error') {
+                        notification.channels.push.error = (receipt as any).message || 'Unknown error';
+
+                        // Handle specific error types
+                        if ((receipt as any).details?.error === 'DeviceNotRegistered') {
+                            // Don't retry - device is unregistered
+                            console.warn(`Device unregistered for notification ${notification.notificationId}`);
+                        } else if (notification.retryCount < notification.maxRetries) {
+                            // Set up retry for retriable errors
+                            notification.retryCount += 1;
+                            notification.lastRetryAt = new Date();
+                            notification.nextRetryAt = calculateNextRetryTime(notification.retryCount);
+                        }
+                    }
+
+                    await notification.save();
+                }
+            } catch (error) {
+                console.error('Error checking batch of receipts:', error);
             }
         }
 
-        console.log(`Processed receipts for ${notifications.length} notifications`);
+        console.log(`Checked receipts for ${notifications.length} notifications`);
     } catch (error) {
-        console.error('Handle push notification receipts error:', error);
+        console.error('Check push notification receipts error:', error);
+    }
+};
+
+/**
+ * Get push notification statistics
+ */
+export const getPushNotificationStats = async (userId?: string) => {
+    try {
+        const query: any = {};
+        if (userId) {
+            query.userId = userId;
+        }
+
+        const stats = await Notification.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: 1 },
+                    sent: { $sum: { $cond: ['$channels.push.sent', 1, 0] } },
+                    delivered: { $sum: { $cond: ['$channels.push.delivered', 1, 0] } },
+                    failed: { $sum: { $cond: ['$channels.push.error', 1, 0] } },
+                    avgRetries: { $avg: '$retryCount' }
+                }
+            }
+        ]);
+
+        return stats[0] || {
+            total: 0,
+            sent: 0,
+            delivered: 0,
+            failed: 0,
+            avgRetries: 0
+        };
+    } catch (error) {
+        console.error('Get push notification stats error:', error);
+        throw error;
+    }
+};
+
+/**
+ * Clean up expired notifications
+ */
+export const cleanupExpiredNotifications = async () => {
+    try {
+        const result = await Notification.deleteMany({
+            expiresAt: { $lt: new Date() }
+        });
+
+        console.log(`Deleted ${result.deletedCount} expired notifications`);
+    } catch (error) {
+        console.error('Cleanup expired notifications error:', error);
     }
 };
