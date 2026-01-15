@@ -66,9 +66,9 @@ const PORT = 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 RapidStroke API Server running on all interfaces:${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  console.log(`🌐 For Expo: http://10.50.133.1:${PORT}/health`);
-  console.log(`🔐 Auth endpoints: http://10.50.133.1:${PORT}/api/auth`);
-  console.log(`👥 Patient endpoints: http://10.50.133.1:${PORT}/api/patients`);
+  console.log(`🌐 For Expo: http://13.53.218.254:${PORT}/health`);
+  console.log(`🔐 Auth endpoints: http://13.53.218.254:${PORT}/api/auth`);
+  console.log(`👥 Patient endpoints: http://13.53.218.254:${PORT}/api/patients`);
 
   // Start background notification tasks
   startBackgroundTasks();
