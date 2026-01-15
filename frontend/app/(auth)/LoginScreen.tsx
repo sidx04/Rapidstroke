@@ -24,6 +24,8 @@ const authService = {
   login: async (data: { email: string; password: string }) => {
     try {
       // POST request to the login endpoint
+      console.log("API URL:", process.env.EXPO_PUBLIC_API_URL);
+
       const response = await axios.post(`${API_BASE_URL}/auth/login`, data);
 
 
